@@ -149,6 +149,8 @@ Currently supported options are:
 * *ip:* additional IP address
 * *cpus:* number of virtual cpus
 * *memory:* memory in MB
+* *forwarded_port:* additional ports to forward
+* *synced_folder:* additional folders to sync
 
 Example:
 
@@ -169,6 +171,13 @@ Example:
               ip: '192.168.1.3'
               cpus: 1
               memory: 512 #mb
+              forwarded_port:
+                guest: 8080
+                host: 8080
+                auto_correct: true
+              synced_folder:
+                src: '../../../../../hieradata'
+                dst: '/etc/puppet/hieradata'
 
 *Note:* These options are currently only supported on Vagrant + VirtualBox. On other providers they are ignored.
 
