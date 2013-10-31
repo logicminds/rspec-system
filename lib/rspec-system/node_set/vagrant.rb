@@ -118,8 +118,9 @@ module RSpecSystem
         f.write('Vagrant.configure("2") do |c|' + "\n")
         nodes.each do |k,v|
           ps = v.provider_specifics['vagrant']
-          default_options = { 'mac' => randmac }
-          options = default_options.merge(v.options || {})
+          #default_options = { 'mac' => randmac }
+          #options = default_options.merge(v.options || {})
+          options = v.options
 
           node_config = "  c.vm.define '#{k}' do |v|\n"
           node_config << "    v.vm.hostname = '#{k}'\n"
