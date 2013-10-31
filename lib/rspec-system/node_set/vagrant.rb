@@ -151,9 +151,9 @@ module RSpecSystem
         next if VALID_VM_OPTIONS.include?(key)
         case key
         when 'cpus','memory'
-          custom_config << "    vbox.customize ['modifyvm', :id, '--#{key}','#{value}']\n"
+          custom_config << "      vbox.customize ['modifyvm', :id, '--#{key}','#{value}']\n"
         when 'mac'
-          custom_config << "    vbox.customize ['modifyvm', :id, '--macaddress1','#{value}']\n"
+          custom_config << "      vbox.customize ['modifyvm', :id, '--macaddress1','#{value}']\n"
         else
           log.warn("Skipped invalid custom option for node #{name}: #{key}=#{value}")
         end
