@@ -2,7 +2,7 @@ require 'securerandom'
 
 module RSpecSystem
   # A NodeSet implementation for lxc-docker
-  class NodeSet::Docker < RSpecSystem::NodeSet::Base
+  class NodeSet::Docker < NodeSet::Base
     include RSpecSystem::Log
     include RSpecSystem::Util
 
