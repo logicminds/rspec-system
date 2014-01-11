@@ -125,7 +125,6 @@ module RSpecSystem
     def run(opts)
       dest = opts[:n].name
       cmd = opts[:c]
-
       ssh = RSpec.configuration.rs_storage[:nodes][dest][:ssh]
       ssh_exec!(ssh, cmd)
     end

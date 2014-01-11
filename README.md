@@ -344,6 +344,109 @@ All parameters are required and case sensitive.
 * Support explicit tenant ids
 * No custom option support
 
+#### Docker Support
+
+Docker support is limited at this time in that it can only run on a supported platform where docker is installed.
+(See docker-io documentation for supported platforms)
+It is assumed you have docker installed on the machine that will run the rspec-system tests.  Currently it is not
+support to call a remote docker host.
+
+###### Assumptions
+
+* A linux machines with docker installed (Virtual or Physical)
+* Docker 0.7.3 (Probably works with older versions too)
+* The user running rspec-system can issue docker commands without sudo  ( User must be part of docker group)
+* A base image that has openssh-server installed, or can be one of your run commands in .nodeset
+* A base image that contains all the tools necessary to run your test
+
+##### Parameters
+
+* *RS_PROVIDER=docker* -- Your openstack token url, something like `http://your.openstack.url:5000/v2.0/tokens`
+* *RS_DESTROY=no|yes* -- Your openstack token url, something like `http://your.openstack.url:5000/v2.0/tokens`
+
+##### Usage
+
+* Set the environment variable RS_PROVIDER=docker
+* Setup your .prefab.yml show it contains the docker specific information (the base image)
+    ```yaml
+       provider_specifics:
+         docker:
+           baseimage: 'tmtk75/puppet-3.4.1'
+
+    ```
+* Modify your .nodeset.yml and provide any docker specific options required to run your test
+
+Not using Linux?  See `http://docs.docker.io/en/master/installation/vagrant/`
+
+
+```yaml
+#.prefabs.yml
+---
+'someservice':
+  description: 'someservice image'
+  provider_specifics:
+    docker:
+      baseimage: 'tmtk75/puppet-3.4.1'
+
+```
+
+Next you will want to perform some additional steps so the rspec-system can create a dockerfile and build an image
+on top of the base image.
+
+There are some new keys in the nodeset that the docker provider users.
+
+1. Shared directories: allow us to map a docker host directory to a container, these entries are added at runtime
+2. Commits:  equivalent to a run command.  Each commit entry is added as a single RUN command to the dockerfile
+
+The following nodeset produces the equivalent dockerfile:
+
+```
+   FROM tmtk75/puppet-3.4.1
+   MAINTAINER rspec-system
+   RUN yum -y install openssh-server sudo; \
+   /usr/bin/ssh-keygen -q -t rsa1 -f /etc/ssh/ssh_host_key -C '' -N ''; \
+   /usr/bin/ssh-keygen -q -t rsa -f /etc/ssh/ssh_host_rsa_key -C '' -N ''; \
+   /usr/bin/ssh-keygen -q -t dsa -f /etc/ssh/ssh_host_dsa_key -C '' -N ''; \
+   mkdir /var/run/sshd && echo 'root:rspec' | chpasswd
+   RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config && sed -ri 's/#UsePAM no/UsePAM no/g' /etc/ssh/sshd_config
+   RUN useradd rsuser && echo 'rsuser:rspec' | chpasswd && echo "rsuser    ALL=(ALL)  NOPASSWD:ALL" >> /etc/sudoers
+   RUN mkdir -p /etc/puppet/modules/production; \
+   ln -nfs /tmp/puppetstuff/hieradata /etc/puppet/hieradata; \
+   ln -nfs /tmp/puppetstuff/hieradata/hiera.yml /etc/puppet/hiera.yml; \
+   yum -y install cronie
+   RUN rpm -ivh https://yum.puppetlabs.com/puppetlabs-release-el-6.noarch.rpm
+   EXPOSE 22
+   ENTRYPOINT ["/usr/sbin/sshd", "-D"]
+
+```
+
+```yaml
+#.nodeset.yml
+---
+default_set: 'someservice'
+sets:
+  'someservice':
+    nodes:
+      "someservice1.apple.com":
+        prefab: 'someservice'
+        docker_options:
+          shared_directories:   #
+            puppet_modules:
+              src: '/Users/git/puppetstuff'   # The src can also be a relative path
+              dst: '/tmp/puppetstuff'         # The dst needs to be a full path
+            hieradata:
+              src: '/Users/git/hieradata'     # The src can also be a relative path
+              dst: '/tmp/hieradata'         # The dst needs to be a full path
+          commits:
+            run_commands1:
+              run0: 'mkdir -p /etc/puppet/modules/production'
+              run1: 'ln -nfs /tmp/puppetstuff/hieradata /etc/puppet/hieradata'
+              run2: 'ln -nfs /tmp/puppetstuff/hieradata/hiera.yml /etc/puppet/hiera.yml
+              run2: 'yum -y install cronie'
+            run_commands2:
+              run0: 'rpm -ivh https://yum.puppetlabs.com/puppetlabs-release-el-6.noarch.rpm'
+
+```
 ### Plugins to rspec-system
 
 Right now we have two types of plugins, the framework is in a state of flux as to how one writes these things but here we go.
@@ -364,6 +467,7 @@ Right now the options are:
 * vagrant\_virtualbox
 * vagrant\_vmware\_fusion
 * vsphere
+* docker
 
 ... and these are installed with core. In the future we probably want to split these out to plugins, but the plugin system isn't quite ready for that yet.
 
