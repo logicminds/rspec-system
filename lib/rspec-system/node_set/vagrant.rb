@@ -11,7 +11,7 @@ module RSpecSystem
     include RSpecSystem::Util
 
     ENV_TYPE = 'vagrant'
-    VALID_VM_OPTIONS = ['ip', 'forwarded_port', 'synced_folder']
+    VALID_VM_OPTIONS = ['ip', 'forwarded_port','forwarded_ports', 'synced_folder']
 
     # Creates a new instance of RSpecSystem::NodeSet::Vagrant
     #
@@ -171,16 +171,23 @@ module RSpecSystem
       vm_config = ""
       options.each_pair do |key,value|
         case key
-        when 'ip'
-          vm_config << "    v.vm.network :private_network, :ip => '#{value}'\n"
-        when /forwarded_port/
-          vm_config << "    v.vm.network :forwarded_port, :guest => #{value['guest']}, :host => #{value['host']}"
-          vm_config << ", auto_correct: true" if value['auto_correct'] == 'true'
-          vm_config << "\n"
-        when /synced_folder/
-          vm_config << "    v.vm.synced_folder '#{value['src']}', '#{value['dst']}'\n"
-        else
-          next
+          when 'ip'
+            vm_config << "    v.vm.network :private_network, :ip => '#{value}'\n"
+          when /forwarded_port/
+            vm_config << "    v.vm.network :forwarded_port, :guest => #{value['guest']}, :host => #{value['host']}"
+            vm_config << ", auto_correct: true" if value['auto_correct'] == 'true'
+            vm_config << "\n"
+          when /forwarded_ports/
+            value.each_pair do |portname, portvalue|
+              vm_config << "    v.vm.network :forwarded_port, :guest => #{portvalue['guest']}, :host => #{portvalue['host']}"
+              vm_config << ", auto_correct: true" if portvalue['auto_correct'] == 'true'
+              vm_config << "\n"
+            end
+
+          when /synced_folder/
+            vm_config << "    v.vm.synced_folder '#{value['src']}', '#{value['dst']}'\n"
+          else
+            next
         end
       end
       vm_config
